@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ITS AWS login
 // @namespace    http://tampermonkey.net/
-// @version      0.4.0
+// @version      0.4.1
 // @description  Ease my login exeprience with AWS
 // @author       Quanlin Chen
 // @match        https://its-sso.nwea.org/adfs/ls/IdpInitiatedSignOn.aspx
@@ -264,7 +264,7 @@ function main($, CryptoJS){
               //break out the each loop
               return false;
           }
-        });
+        })
     }
 
     function bindEvents(){
@@ -317,10 +317,16 @@ function main($, CryptoJS){
             localStorage.setItem('lastSignInDate', (new Date).getTime());
         });
 
-        //Move(copy and hide original element) role selection to the designated section
-        $('.account-radio').on('click', function() {
+        //remove existing handler on the 'saml-account' element
+        $('.account-radio').parent().removeAttr('onclick');
+        //add event to handle account row click on the new UI
+        $('.saml-account:even').on('click', function () {
+            const radioBtn = $(this).find('.account-radio');
+            radioBtn.prop('checked',true);
+
+            //Move(copy and hide original element) role selection to the designated section
             $('#role-selection').children().remove();
-            $(this).parent().siblings('.saml-account').children().clone(true).appendTo('#role-selection');
+            radioBtn.parent().siblings('.saml-account').children().clone(true).appendTo('#role-selection');
             //change the copied element's class name so it won't be affected by hiding the original ones
             $('#role-selection').children('.saml-role').prop('class','role-select');
             //select the first available role by default
@@ -349,7 +355,6 @@ function main($, CryptoJS){
                                  <button id="bt_password_save" type="button" class="password">Save</button>
                                  </div>
                                </div>`;
-
     const saveCredential = function() {
         const userName = $('#userNameInput').val();
         const password = $('input[name="password"]').val();
@@ -439,3 +444,4 @@ function main($, CryptoJS){
 window.addEventListener("load", addJQuery(main));
 let style = GM_getResourceText("style");
 GM_addStyle(style);
+
