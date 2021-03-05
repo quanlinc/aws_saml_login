@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         ITS AWS login
 // @namespace    http://tampermonkey.net/
-// @version      0.3.1
+// @version      0.4.0
 // @description  Ease my login exeprience with AWS
 // @author       Quanlin Chen
 // @match        https://its-sso.nwea.org/adfs/ls/IdpInitiatedSignOn.aspx
 // @match        https://signin.aws.amazon.com/saml
-// @resource     style   file:///Users/quanlin.chen/projects/userscripts/AWS_plugin.css
+// @resource     style   file://D:/AWS_plugin.css
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
 // ==/UserScript==
@@ -23,7 +23,7 @@ function addJQuery(callback){
         callback(unsafeWindow.jQuery);
     }else{
         var script = document.createElement("script");
-        script.setAttribute("src", "https://code.jquery.com/jquery-3.3.1.min.js");
+        script.setAttribute("src", "https://code.jquery.com/jquery-3.6.0.min.js");
         script.addEventListener('load',function(){
             addCryptoJS(callback);
         },false);
@@ -60,16 +60,18 @@ function main($, CryptoJS){
         }
     };
 
-    let modal = "<div id=\"configModal\" class=\"modal\">\
-                   <div class=\"modal-content\">\
-                     <span class=\"close\">&times;</span>\
-                     Default account <select name=\"accountName\"/>\
-                     <br>\
-                     Auto log me in for <select name=\"duration\"/>\
-                     <br>\
-                     <button type=\"button\">Save</button>\
-                   </div>\
-                </div>"
+
+    let modal = `<div id="configModal" class="modal">
+                   <div class="modal-content">
+                     <span class="close">&times;</span>
+                     Default account <select name="accountName"></select>
+                     <br>
+                     Auto log me in for <select name="duration"></select>
+                     <br>
+                     <button type="button">Save</button>
+                   </div>
+                </div>`
+
     let optionsForDefaultAccount=[];
 
     let configButton = "<button id=\"configBtn\">Config</button>";
@@ -139,7 +141,7 @@ function main($, CryptoJS){
         };
 
         $.each(availableOptions, function(key, value){
-            $('select[name="duration"]').append($("<option></option>").attr("value", key).text(value));
+            $('select[name="duration"]').append($("<option></option>").prop("value", key).text(value));
         });
 
         //set default if exists in local storage
@@ -156,7 +158,7 @@ function main($, CryptoJS){
                 return this.target.css('display');
             },
             update: function (source) {
-                if(source.attr('id') === this.target.attr('id')) {
+                if(source.prop('id') === this.target.prop('id')) {
                     this.target.show("fast");
                 } else {
                     this.target.hide("fast");
@@ -176,25 +178,34 @@ function main($, CryptoJS){
             //build selections based off keys
             optionsForDefaultAccount.push(makeOptionElement(key, value));
 
+            //modify the element layout before pushing to metaData
+            // 1. get rid of the leading string "Accounts: " in title
+            // 2. add radio button in the front of each account name and remove original triangle icon
+            // 3. hide saml role css class
+            const shortDisplayName = $(this).text().slice(9);
+            $(this).text(shortDisplayName);
+
+            $(this).prev().before(`<input type="radio" name="accountIndex" class="account-radio">`);
+            $(this).prev().hide();
+
             metaData[key] = $(this).parents('.saml-account');
         });
 
-        $('fieldset').after("\
-            <div>\
-                <div id=\"dev-container\" class=\"saml-role-description env\">Development\
-                    <div id=\"dev-accounts\"></div>\
-                </div>\
-                <div id=\"int-container\" class=\"saml-role-description env\">Integration\
-                    <div id=\"int-accounts\"></div>\
-                </div>\
-                <div id=\"prd-container\" class=\"saml-role-description env\">Production\
-                    <div id=\"prd-accounts\"></div>\
-                </div>\
-                <div id=\"other-container\" class=\"saml-role-description env\">Other\
-                    <div id=\"other-accounts\"></div>\
-                </div>\
-            </div>\
-        ");
+        $('fieldset').after(`
+            <div>
+                <div id="dev-container" class="saml-role-description env">Development
+                    <div id="dev-accounts"></div>
+                </div>
+                <div id="int-container" class="saml-role-description env">Integration
+                    <div id="int-accounts"></div>
+                </div>
+                <div id="prd-container" class="saml-role-description env">Production
+                    <div id="prd-accounts"></div>
+                </div>
+                <div id="other-container" class="saml-role-description env">Other
+                    <div id="other-accounts"></div>
+                </div>
+            </div>`);
 
         //add config button
         $('#content').before(configButton);
@@ -202,8 +213,15 @@ function main($, CryptoJS){
         //add modal template
         $('#container').after(modal);
 
+        //add a new div for better UI experience, later role selection div will be moved into this one together with its title
+        $('p').before(`<div class="role-display"></div>`);
+
         //add search bar
-        $('p').after('<span class="title">Search account</span> <input type="text" id="accountSearch" class="accountSearch" placeholder="Search for account name...">')
+        $('p').after('<div class="searchBar"><span class="title">Search account</span> <input type="text" id="accountSearch" class="accountSearch" placeholder="Search for account name..."></div>');
+
+        //add role selection section
+        $('.role-display').append(`<div id="role-selection"></div>`);
+        $('.role-display').append($('p'));
 
         popuateAccountSelectOptions();
         populateLoginExpiryOption();
@@ -241,12 +259,12 @@ function main($, CryptoJS){
               $(this).click();
               // select the account if that's the only match
               if(matchedAccounts.length === 1) {
-                  $(matchedAccounts).find('.saml-role').click();
+                  matchedAccounts.find('.account-radio').click();
               }
               //break out the each loop
               return false;
           }
-        })
+        });
     }
 
     function bindEvents(){
@@ -254,7 +272,7 @@ function main($, CryptoJS){
             accordionObserver.update($(this).children(':first'));
         });
 
-        //prevent innder elements' default behavior on click event
+        //prevent inner elements' default behavior on click event
         $('div[id$="-container"]').on('click', '.saml-account', function(e){ e.stopPropagation();});
 
         //add keyup event for account search text field
@@ -298,16 +316,25 @@ function main($, CryptoJS){
         awsSignInButton.click(function () {
             localStorage.setItem('lastSignInDate', (new Date).getTime());
         });
+
+        //Move(copy and hide original element) role selection to the designated section
+        $('.account-radio').on('click', function() {
+            $('#role-selection').children().remove();
+            $(this).parent().siblings('.saml-account').children().clone(true).appendTo('#role-selection');
+            //change the copied element's class name so it won't be affected by hiding the original ones
+            $('#role-selection').children('.saml-role').prop('class','role-select');
+            //select the first available role by default
+            $('.role-select').first().click();
+        });
     }
 
     function setDefaultAccount(account) {
         //clean up previous highlighted label if any
         $('.highlight').removeClass('highlight');
-        $(':radio').each(function(index) {
-            if($(this).val().includes(account)) {
-                $(this).click();
-                //highlight the selected account
-                $(this).next().addClass('highlight');
+        $('.saml-account-name').each(function() {
+            if($(this).text().includes(account)) {
+                $(this).addClass('highlight');
+                $(this).siblings('.account-radio').click();
                 //expand the cooresponding panel
                 $(this).closest('div[id$=container]').click();
             }
@@ -315,13 +342,13 @@ function main($, CryptoJS){
     }
 
     //change password
-    let passwordModal = "<div id=\"passwordModal\" class=\"modal\">\
-                                 <div class=\"modal-content\">\
-                                 <span class=\"close\">&times;</span>\
-                                 New password <input type=\"password\" name=\"password\"/>\
-                                 <button id=\"bt_password_save\" type=\"button\" class=\"password\">Save</button>\
-                                 </div>\
-                               </div>"
+    let passwordModal = `<div id="passwordModal" class="modal">
+                                 <div class="modal-content">
+                                 <span class="close">&times;</span>
+                                 New password <input type="password" name="password"/>
+                                 <button id="bt_password_save" type="button" class="password">Save</button>
+                                 </div>
+                               </div>`;
 
     const saveCredential = function() {
         const userName = $('#userNameInput').val();
@@ -412,4 +439,3 @@ function main($, CryptoJS){
 window.addEventListener("load", addJQuery(main));
 let style = GM_getResourceText("style");
 GM_addStyle(style);
-
