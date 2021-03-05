@@ -6,7 +6,7 @@
 // @author       Quanlin Chen
 // @match        https://its-sso.nwea.org/adfs/ls/IdpInitiatedSignOn.aspx
 // @match        https://signin.aws.amazon.com/saml
-// @resource     style   file://D:/AWS_plugin.css
+// @resource     style   file:///Users/quanlin.chen/projects/userscripts/AWS_plugin.css
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
 // ==/UserScript==
