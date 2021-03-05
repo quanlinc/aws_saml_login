@@ -220,8 +220,8 @@ function main($, CryptoJS){
         $('p').after('<div class="searchBar"><span class="title">Search account</span> <input type="text" id="accountSearch" class="accountSearch" placeholder="Search for account name..."></div>');
 
         //add role selection section
-        $('.role-display').append(`<div id="role-selection"></div>`);
         $('.role-display').append($('p'));
+        $('.role-display').append(`<div id="role-selection"></div>`);
 
         popuateAccountSelectOptions();
         populateLoginExpiryOption();
