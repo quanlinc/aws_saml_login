@@ -1,14 +1,16 @@
 // ==UserScript==
 // @name         ITS AWS login
 // @namespace    http://tampermonkey.net/
-// @version      0.4.1
+// @version      0.4.2
 // @description  Ease my login exeprience with AWS
 // @author       Quanlin Chen
 // @match        https://its-sso.nwea.org/adfs/ls/IdpInitiatedSignOn.aspx
+// @match        https://sso.nwea.org/adfs/ls/IdpInitiatedSignOn.aspx
 // @match        https://signin.aws.amazon.com/saml
 // @resource     style   file:///Users/quanlin.chen/projects/userscripts/AWS_plugin.css
 // @grant        GM_getResourceText
 // @grant        GM_addStyle
+// @grant unsafeWindow
 // ==/UserScript==
 /* jshint -W097 */
 //debugger;
@@ -24,6 +26,8 @@ function addJQuery(callback){
     }else{
         var script = document.createElement("script");
         script.setAttribute("src", "https://code.jquery.com/jquery-3.6.0.min.js");
+        script.setAttribute("integrity", "sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=");
+        script.setAttribute("crossorigin", "anonymous");
         script.addEventListener('load',function(){
             addCryptoJS(callback);
         },false);
@@ -330,7 +334,7 @@ function main($, CryptoJS){
             //change the copied element's class name so it won't be affected by hiding the original ones
             $('#role-selection').children('.saml-role').prop('class','role-select');
             //select the first available role by default
-            $('.role-select').first().click();
+            $('.role-select').find('input').click();
         });
     }
 
@@ -370,9 +374,9 @@ function main($, CryptoJS){
     }
 
     let autoLogin = (function($){
-
         let init = function(){
-            if(location.href == "https://its-sso.nwea.org/adfs/ls/IdpInitiatedSignOn.aspx") {
+            if(location.href == "https://its-sso.nwea.org/adfs/ls/IdpInitiatedSignOn.aspx" ||
+              location.href == "https://sso.nwea.org/adfs/ls/IdpInitiatedSignOn.aspx") {
                 if($('#userNameInput').length > 0){ //in case that we need to type in credentials.
                     //attempt once and if it failed, most likely due to password expiry, wait for manual login and update password
                     if ($('#errorText').text() !== "") { //presume the error is due to incorrect password
@@ -444,4 +448,3 @@ function main($, CryptoJS){
 window.addEventListener("load", addJQuery(main));
 let style = GM_getResourceText("style");
 GM_addStyle(style);
-
