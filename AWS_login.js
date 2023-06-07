@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ITS AWS login
 // @namespace    http://tampermonkey.net/
-// @version      0.4.2
+// @version      0.4.3
 // @description  Ease my login exeprience with AWS
 // @author       Quanlin Chen
 // @match        https://its-sso.nwea.org/adfs/ls/IdpInitiatedSignOn.aspx
@@ -334,7 +334,7 @@ function main($, CryptoJS){
             //change the copied element's class name so it won't be affected by hiding the original ones
             $('#role-selection').children('.saml-role').prop('class','role-select');
             //select the first available role by default
-            $('.role-select').find('input').click();
+            $('.role-select').find('input').get(0).click();
         });
     }
 
